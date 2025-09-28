@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
     
     # Database Configuration
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:password@localhost:5432/samudra_sachet"
+    DATABASE_URL: str = "sqlite+aiosqlite:///./test.db"
     
     # Security Configuration
     SECRET_KEY: str = "your-secret-key-change-in-production"
