@@ -8,8 +8,8 @@ from app.models.media_analysis import AnalysisType
 class MediaAnalysisBase(BaseModel):
     """Base media analysis schema with common fields."""
     analysis_type: AnalysisType
-    model_name: str = Field(..., min_length=1, max_length=100)
-    model_version: str = Field(..., min_length=1, max_length=20)
+    ai_model_name: str = Field(..., min_length=1, max_length=100)
+    ai_model_version: str = Field(..., min_length=1, max_length=20)
     results: Dict[str, Any] = Field(..., description="Analysis results")
     processing_time_ms: Optional[int] = Field(None, ge=0)
 

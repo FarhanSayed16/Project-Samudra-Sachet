@@ -24,8 +24,8 @@ class MediaAnalysis(BaseModel):
     
     # Analysis Details
     analysis_type = Column(Enum(AnalysisType), nullable=False)
-    model_name = Column(String(100), nullable=True)  # Which AI model was used
-    model_version = Column(String(20), nullable=True)
+    ai_model_name = Column(String(100), nullable=True)  # Which AI model was used
+    ai_model_version = Column(String(20), nullable=True)
     results = Column(get_jsonb_column(), nullable=False)  # Detailed analysis results
     
     # Performance Tracking
@@ -44,4 +44,4 @@ class MediaAnalysis(BaseModel):
     social_media_post = relationship("SocialMediaPost", back_populates="media_analyses")
     
     def __repr__(self):
-        return f"<MediaAnalysis(id={self.id}, type={self.analysis_type}, model={self.model_name})>"
+        return f"<MediaAnalysis(id={self.id}, type={self.analysis_type}, model={self.ai_model_name})>"
