@@ -1,4 +1,8 @@
-frontend/
+frontend/node_modules/
+frontend/apps/web/node_modules/
+frontend/apps/web/public/
+frontend/apps/web/dist/
+
 node_modules/
 backend/node_modules/
 .DS_Store
