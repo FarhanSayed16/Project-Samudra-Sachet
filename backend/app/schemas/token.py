@@ -7,8 +7,10 @@ from uuid import UUID
 class Token(BaseModel):
     """Schema for JWT token response."""
     access_token: str
+    refresh_token: Optional[str] = None
     token_type: str = "bearer"
     expires_in: int
+    user: Optional[Dict[str, Any]] = None
 
 
 class TokenData(BaseModel):

@@ -43,7 +43,7 @@ class User(BaseModel):
     # Relationships
     reports = relationship("Report", back_populates="user", cascade="all, delete-orphan")
     verification_logs = relationship("VerificationLog", back_populates="verifier", foreign_keys="VerificationLog.verified_by")
-    escalated_verifications = relationship("VerificationLog", back_populates="escalated_to", foreign_keys="VerificationLog.escalated_to")
+    escalated_verifications = relationship("VerificationLog", back_populates="escalated_to_user", foreign_keys="VerificationLog.escalated_to")
     audit_logs = relationship("AuditLog", back_populates="user")
     
     def __repr__(self):

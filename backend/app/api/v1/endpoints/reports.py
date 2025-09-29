@@ -7,7 +7,7 @@ from app.core.security import (
     require_analyst_or_authority
 )
 from app.db.session import get_db
-from app.crud.crud_report import crud_report
+from simple_crud_report import simple_crud_report
 from app.crud.crud_user import crud_user
 from app.crud.crud_verification_log import crud_verification_log
 from app.core.file_upload import upload_media_file
