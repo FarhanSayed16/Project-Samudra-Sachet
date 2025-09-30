@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Token Test</title>
+</head>
+<body>
+    <h1>Token Test</h1>
+    <div id="output"></div>
+    
+    <script>
+        function testTokenRetrieval() {
+            const output = document.getElementById('output');
+            
+            // Simulate Redux Persist structure
+            const mockAuthState = {
+                user: {
+                    id: "test-id",
+                    email: "citizen@samudra-sachet.com",
+                    user_role: "citizen"
+                },
+                token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlOTczMDRmZS01NzVmLTQzZDUtOGI0OC05OGY0MGRiYTVlY2EiLCJlbWFpbCI6ImNpdGl6ZW5Ac2FtdWRyYS1zYWNoZXQuY29tIiwidXNlcl9yb2xlIjoiY2l0aXplbiIsImV4cCI6MTc1OTI0NzMwNCwidHlwZSI6ImFjY2VzcyJ9.test",
+                refreshToken: "refresh-token",
+                isAuthenticated: true,
+                userRole: "citizen"
+            };
+            
+            // Store in localStorage like Redux Persist would
+            localStorage.setItem('persist:auth', JSON.stringify({
+                auth: mockAuthState
+            }));
+            
+            // Test token retrieval function
+            function getToken() {
+                try {
+                    const persistedAuth = localStorage.getItem('persist:auth');
+                    if (persistedAuth) {
+                        const parsed = JSON.parse(persistedAuth);
+                        console.log('Raw persisted auth:', parsed);
+                        
+                        const authState = parsed.auth;
+                        console.log('Auth state:', authState);
+                        
+                        const token = authState?.token;
+                        console.log('Token retrieval:', token ? 'SUCCESS' : 'FAILED');
+                        if (token) {
+                            console.log('Token preview:', token.substring(0, 20) + '...');
+                        }
+                        return token;
+                    }
+                    console.warn('No persist:auth found in localStorage');
+                } catch (error) {
+                    console.error('Error getting token from localStorage:', error);
+                }
+                return null;
+            }
+            
+            const token = getToken();
+            
+            output.innerHTML = `
+                <h2>Test Results:</h2>
+                <p><strong>Token Retrieved:</strong> ${token ? 'SUCCESS' : 'FAILED'}</p>
+                <p><strong>Token Preview:</strong> ${token ? token.substring(0, 50) + '...' : 'None'}</p>
+                <p><strong>Full Token:</strong> ${token || 'None'}</p>
+                
+                <h2>localStorage Contents:</h2>
+                <pre>${JSON.stringify(JSON.parse(localStorage.getItem('persist:auth') || '{}'), null, 2)}</pre>
+            `;
+        }
+        
+        // Run test on page load
+        window.onload = testTokenRetrieval;
+    </script>
+</body>
+</html>

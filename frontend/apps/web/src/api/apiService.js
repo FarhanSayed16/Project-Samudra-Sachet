@@ -12,14 +12,34 @@ const api = axios.create({
 // Function to get token from localStorage (for interceptors)
 const getToken = () => {
   try {
-    const persistedState = localStorage.getItem('persist:auth');
-    if (persistedState) {
-      const parsed = JSON.parse(persistedState);
-      const authState = JSON.parse(parsed.auth || '{}');
-      return authState.token;
+    // Get from persist:auth (redux-persist config key)
+    const persistedAuth = localStorage.getItem('persist:auth');
+    console.log('🔍 [TOKEN] Raw persisted auth from localStorage:', persistedAuth);
+    
+    if (persistedAuth) {
+      const parsed = JSON.parse(persistedAuth);
+      console.log('🔍 [TOKEN] Parsed persist auth:', parsed);
+      
+      // Redux persist stores the auth state directly in the 'auth' field
+      const authState = parsed.auth;
+      console.log('🔍 [TOKEN] Auth state:', authState);
+      
+      const token = authState?.token;
+      console.log('🔍 [TOKEN] Token retrieval:', token ? 'SUCCESS' : 'FAILED');
+      if (token) {
+        console.log('🔍 [TOKEN] Token preview:', token.substring(0, 20) + '...');
+        console.log('🔍 [TOKEN] Full token length:', token.length);
+      } else {
+        console.log('🔍 [TOKEN] No token in authState');
+        console.log('🔍 [TOKEN] Available keys in authState:', Object.keys(authState || {}));
+      }
+      return token;
     }
+
+    console.warn('❌ [TOKEN] No persist:auth found in localStorage');
+    console.log('❌ [TOKEN] Available localStorage keys:', Object.keys(localStorage));
   } catch (error) {
-    console.error('Error getting token from localStorage:', error);
+    console.error('❌ [TOKEN] Error getting token from localStorage:', error);
   }
   return null;
 };
@@ -27,14 +47,15 @@ const getToken = () => {
 // Function to get refresh token from localStorage
 const getRefreshToken = () => {
   try {
-    const persistedState = localStorage.getItem('persist:auth');
-    if (persistedState) {
-      const parsed = JSON.parse(persistedState);
-      const authState = JSON.parse(parsed.auth || '{}');
-      return authState.refreshToken;
+    const persistedAuth = localStorage.getItem('persist:auth');
+    if (persistedAuth) {
+      const parsed = JSON.parse(persistedAuth);
+      // Redux persist stores the auth state directly in the 'auth' field
+      const authState = parsed.auth;
+      return authState?.refreshToken;
     }
   } catch (error) {
-    console.error('Error getting refresh token from localStorage:', error);
+    console.error('❌ Error getting refresh token from localStorage:', error);
   }
   return null;
 };
@@ -42,62 +63,99 @@ const getRefreshToken = () => {
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
+    console.log('📤 [API] Request interceptor called for:', config.method?.toUpperCase(), config.url);
+    
     const token = getToken();
-
+    console.log('📤 [API] Token status:', token ? 'Present' : 'Missing');
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('📤 [API] Authorization header set:', `Bearer ${token.substring(0, 20)}...`);
+      console.log('📤 [API] Full Authorization header:', config.headers.Authorization);
+    } else {
+      console.warn('⚠️ [API] No auth token found for request to:', config.url);
+      console.warn('⚠️ [API] Request will be sent without Authorization header');
     }
 
+    console.log('📤 [API] Final request headers:', config.headers);
+    console.log('📤 [API] Request config:', {
+      method: config.method,
+      url: config.url,
+      headers: config.headers,
+      data: config.data
+    });
+    
     return config;
   },
   (error) => {
+    console.error('❌ [API] Request interceptor error:', error);
     return Promise.reject(error);
   }
 );
 
 // Response interceptor to handle token refresh
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('✅ [API] Success:', response.status, response.config.url);
+    return response;
+  },
   async (error) => {
+    console.log('❌ [API] Error:', error.response?.status, error.config?.url, error.message);
+    console.log('❌ [API] Error response:', error.response?.data);
+    
+    // If no response, it's a network error - don't try to refresh
+    if (!error.response) {
+      console.error('Network error:', error.message);
+      return Promise.reject(error);
+    }
+    
     const originalRequest = error.config;
 
+    // Only handle 401 Unauthorized errors for token refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
+      console.log('🔄 Attempting token refresh for 401 error...');
       originalRequest._retry = true;
 
       try {
         const refreshToken = getRefreshToken();
 
-        if (refreshToken) {
-          const response = await axios.post(`${api.defaults.baseURL}/auth/refresh`, {
-            refresh_token: refreshToken
-          });
-
-          const { access_token } = response.data;
-          
-          // Update token in localStorage
-          try {
-            const persistedState = localStorage.getItem('persist:auth');
-            if (persistedState) {
-              const parsed = JSON.parse(persistedState);
-              const authState = JSON.parse(parsed.auth || '{}');
-              authState.token = access_token;
-              parsed.auth = JSON.stringify(authState);
-              localStorage.setItem('persist:auth', JSON.stringify(parsed));
-            }
-          } catch (updateError) {
-            console.error('Error updating token in localStorage:', updateError);
-          }
-
-          originalRequest.headers.Authorization = `Bearer ${access_token}`;
-          return api(originalRequest);
+        if (!refreshToken) {
+          console.error('No refresh token available');
+          // Don't redirect automatically, just reject
+          return Promise.reject(error);
         }
+
+        const response = await axios.post(`${api.defaults.baseURL}/auth/refresh`, {
+          refresh_token: refreshToken
+        });
+
+        const { access_token } = response.data;
+        console.log('✅ Token refreshed successfully');
+        
+        // Update token in localStorage
+        try {
+          const persistedState = localStorage.getItem('persist:auth');
+          if (persistedState) {
+            const parsed = JSON.parse(persistedState);
+            const authState = parsed.auth;
+            authState.token = access_token;
+            parsed.auth = authState;
+            localStorage.setItem('persist:auth', JSON.stringify(parsed));
+          }
+        } catch (updateError) {
+          console.error('❌ Error updating token in localStorage:', updateError);
+        }
+
+        originalRequest.headers.Authorization = `Bearer ${access_token}`;
+        return api(originalRequest);
       } catch (refreshError) {
-        // Clear auth data and redirect to login
-        localStorage.removeItem('persist:auth');
-        window.location.href = '/login';
+        console.error('❌ Token refresh failed:', refreshError.message);
+        // Don't automatically redirect - let the app handle it
+        return Promise.reject(error);
       }
     }
 
+    // For all other errors, just reject without any special handling
     return Promise.reject(error);
   }
 );
@@ -325,3 +383,4 @@ export const alertsAPI = {
 };
 
 export default api;
+export { api as apiService };

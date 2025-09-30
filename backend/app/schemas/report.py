@@ -54,9 +54,18 @@ class Report(ReportInDB):
         """Create Report instance from ORM object with location extraction."""
         data = obj.__dict__.copy()
         if hasattr(obj, 'location') and obj.location is not None:
-            # Extract coordinates from PostGIS geometry
-            data['latitude'] = float(obj.location.data['y'])
-            data['longitude'] = float(obj.location.data['x'])
+            # Extract coordinates from location (PostGIS or WKT)
+            if hasattr(obj.location, 'data'):
+                # PostGIS geometry
+                data['latitude'] = float(obj.location.data['y'])
+                data['longitude'] = float(obj.location.data['x'])
+            elif isinstance(obj.location, str) and obj.location.startswith('POINT('):
+                # WKT format for SQLite
+                import re
+                match = re.match(r'POINT\(([\d.-]+)\s+([\d.-]+)\)', obj.location)
+                if match:
+                    data['longitude'] = float(match.group(1))
+                    data['latitude'] = float(match.group(2))
         return cls(**data)
 
 

@@ -10,13 +10,14 @@ import {
   HotspotsPage,
   AdminPage,
   VerificationPage,
+  CitizenPage,
 } from './pages';
 import { NotFound } from './components';
 
 export default createBrowserRouter(
   createRoutesFromElements(
     <Route path="/" element={<MainLayout />}>
-      <Route index element={<Navigate to="/dashboard" replace />} />
+      <Route index element={<Navigate to="/login" replace />} />
 
       <Route
         path="login"
@@ -30,7 +31,7 @@ export default createBrowserRouter(
       <Route
         path="dashboard"
         element={
-          <AuthLayout authentication={true} roles={['analyst', 'authority', 'admin']}>
+          <AuthLayout authentication={true} roles={['coastal_volunteer', 'coastal_guard', 'disaster_manager', 'admin']}>
             <DashboardPage />
           </AuthLayout>
         }
@@ -39,7 +40,7 @@ export default createBrowserRouter(
       <Route
         path="reports"
         element={
-          <AuthLayout authentication={true} roles={['analyst', 'authority', 'admin']}>
+          <AuthLayout authentication={true} roles={['coastal_volunteer', 'coastal_guard', 'disaster_manager', 'admin']}>
             <ReportsPage />
           </AuthLayout>
         }
@@ -48,7 +49,7 @@ export default createBrowserRouter(
       <Route
         path="verification"
         element={
-          <AuthLayout authentication={true} roles={['analyst', 'authority']}>
+          <AuthLayout authentication={true} roles={['coastal_volunteer', 'coastal_guard', 'disaster_manager']}>
             <VerificationPage />
           </AuthLayout>
         }
@@ -57,7 +58,7 @@ export default createBrowserRouter(
       <Route
         path="hotspots"
         element={
-          <AuthLayout authentication={true} roles={['analyst', 'authority', 'admin']}>
+          <AuthLayout authentication={true} roles={['coastal_volunteer', 'coastal_guard', 'disaster_manager', 'admin']}>
             <HotspotsPage />
           </AuthLayout>
         }
@@ -75,8 +76,17 @@ export default createBrowserRouter(
       <Route
         path="profile"
         element={
-          <AuthLayout authentication={true}>
+          <AuthLayout authentication={true} roles={['citizen', 'coastal_volunteer', 'coastal_guard', 'disaster_manager', 'admin']}>
             <ProfilePage />
+          </AuthLayout>
+        }
+      />
+
+      <Route
+        path="citizen"
+        element={
+          <AuthLayout authentication={true} roles={['citizen']}>
+            <CitizenPage />
           </AuthLayout>
         }
       />
