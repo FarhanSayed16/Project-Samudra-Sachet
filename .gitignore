@@ -9,3 +9,4 @@ backend/node_modules/
 backend/app/crud
 backend/app/schemas/__pycache__/
 backend/app/models/__pycache__/
+frontend/apps/mobile/

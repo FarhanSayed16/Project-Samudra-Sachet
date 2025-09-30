@@ -19,11 +19,10 @@ async def lifespan(app: FastAPI):
     """Application lifespan manager."""
     # Startup
     print(f"Starting Project Samudra Sachet API...")
-    print(f"Database URL: {settings.DATABASE_URL}")
     
     try:
         await init_db()
-        print("Database initialized successfully!")
+        print("Database connection established")
     except Exception as e:
         print(f"Error initializing database: {e}")
         raise
