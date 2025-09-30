@@ -26,10 +26,19 @@ def main():
     if not os.getenv("DEBUG"):
         os.environ["DEBUG"] = "true"
     
-    print("🌊 Starting Project Samudra Sachet Backend...")
-    print("📚 API Documentation: http://localhost:8000/docs")
-    print("🔍 Health Check: http://localhost:8000/health")
-    print("🚀 API Base URL: http://localhost:8000/api/v1")
+    # Check if database exists, if not, provide instructions
+    db_path = Path("samudra_sachet.db")
+    if not db_path.exists():
+        print("Database not found. Please run database initialization first:")
+        print("   python init_database.py")
+        print("   This will create the database and default admin user.")
+        print("=" * 50)
+        return
+    
+    print("Starting Project Samudra Sachet Backend...")
+    print("API Documentation: http://localhost:8000/docs")
+    print("Health Check: http://localhost:8000/health")
+    print("API Base URL: http://localhost:8000/api/v1")
     print("=" * 50)
     
     # Start the server
