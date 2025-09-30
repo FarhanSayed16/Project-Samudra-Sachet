@@ -5,3 +5,4 @@ export { default as ReportsPage } from './ReportsPage';
 export { default as HotspotsPage } from './HotspotsPage';
 export { default as AdminPage } from './AdminPage';
 export { default as VerificationPage } from './VerificationPage';
+export { default as CitizenPage } from './CitizenPage';

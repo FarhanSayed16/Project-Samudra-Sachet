@@ -31,8 +31,23 @@ const LoginPage = () => {
     dispatch(clearError());
 
     try {
-      await dispatch(loginUser(formData)).unwrap();
-      navigate('/dashboard');
+      const result = await dispatch(loginUser(formData)).unwrap();
+      const userRole = result.user?.user_role;
+      
+      // Navigate based on user role
+      switch (userRole) {
+        case 'citizen':
+          navigate('/citizen');
+          break;
+        case 'coastal_volunteer':
+        case 'coastal_guard':
+        case 'disaster_manager':
+        case 'admin':
+          navigate('/dashboard');
+          break;
+        default:
+          navigate('/dashboard');
+      }
     } catch (error) {
       console.error('Login failed:', error);
     }
@@ -59,6 +74,33 @@ const LoginPage = () => {
             <p className="text-center text-gray-600">
               Access your dashboard
             </p>
+            
+            {/* User Role Information */}
+            <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+              <h3 className="text-sm font-medium text-blue-900 mb-2">Login As:</h3>
+              <div className="grid grid-cols-2 gap-2 text-xs text-blue-800">
+                <div className="flex items-center">
+                  <span className="mr-1">👤</span>
+                  <span>Citizen</span>
+                </div>
+                <div className="flex items-center">
+                  <span className="mr-1">🤝</span>
+                  <span>Coastal Volunteer</span>
+                </div>
+                <div className="flex items-center">
+                  <span className="mr-1">🛡</span>
+                  <span>Coastal Guard</span>
+                </div>
+                <div className="flex items-center">
+                  <span className="mr-1">🚨</span>
+                  <span>Disaster Manager</span>
+                </div>
+                <div className="flex items-center">
+                  <span className="mr-1">⚙</span>
+                  <span>Admin</span>
+                </div>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
