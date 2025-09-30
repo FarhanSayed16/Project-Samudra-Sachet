@@ -10,7 +10,8 @@ import {
   CheckCircle,
   Shield,
   User,
-  LogOut
+  LogOut,
+  Users
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -27,20 +28,21 @@ const Sidebar = () => {
 
   const getNavigationLinks = () => {
     const baseLinks = [
-      { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['analyst', 'authority', 'admin'] },
-      { to: '/reports', icon: FileText, label: 'Reports', roles: ['analyst', 'authority', 'admin'] },
-      { to: '/hotspots', icon: MapPin, label: 'Hotspots', roles: ['analyst', 'authority', 'admin'] },
+      { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['coastal_volunteer', 'coastal_guard', 'disaster_manager', 'admin'] },
+      { to: '/reports', icon: FileText, label: 'Reports', roles: ['coastal_volunteer', 'coastal_guard', 'disaster_manager', 'admin'] },
+      { to: '/hotspots', icon: MapPin, label: 'Hotspots', roles: ['coastal_volunteer', 'coastal_guard', 'disaster_manager', 'admin'] },
+      { to: '/citizen', icon: Users, label: 'Ocean Reports', roles: ['citizen'] },
     ];
 
-    if (userRole === 'analyst' || userRole === 'authority') {
-      baseLinks.push({ to: '/verification', icon: CheckCircle, label: 'Verification', roles: ['analyst', 'authority'] });
+    if (userRole === 'coastal_volunteer' || userRole === 'coastal_guard' || userRole === 'disaster_manager') {
+      baseLinks.push({ to: '/verification', icon: CheckCircle, label: 'Verification', roles: ['coastal_volunteer', 'coastal_guard', 'disaster_manager'] });
     }
 
     if (userRole === 'admin') {
       baseLinks.push({ to: '/admin', icon: Shield, label: 'Admin Panel', roles: ['admin'] });
     }
 
-    baseLinks.push({ to: '/profile', icon: User, label: 'Profile', roles: ['analyst', 'authority', 'admin'] });
+    baseLinks.push({ to: '/profile', icon: User, label: 'Profile', roles: ['citizen', 'coastal_volunteer', 'coastal_guard', 'disaster_manager', 'admin'] });
 
     return baseLinks.filter(link => link.roles.includes(userRole));
   };
