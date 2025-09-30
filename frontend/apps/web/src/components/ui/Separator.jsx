@@ -31,3 +31,4 @@ Separator.propTypes = {
 };
 
 export default Separator;
+export { Separator };
