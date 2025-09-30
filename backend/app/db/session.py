@@ -6,7 +6,7 @@ from app.core.config import settings
 # Create async engine
 engine = create_async_engine(
     settings.DATABASE_URL,
-    echo=settings.DEBUG,  # Set to True for SQL query logging
+    echo=False,  # Disable SQL query logging for cleaner output
     future=True,
     pool_pre_ping=True,  # Verify connections before use
     pool_recycle=300,    # Recycle connections every 5 minutes
@@ -38,7 +38,7 @@ async def get_db() -> AsyncSession:
 
 
 async def init_db():
-    """Initialize database tables."""
+    """Initialize database tables (only if they don't exist)."""
     from app.db.base_class import Base
     import os
     
@@ -54,7 +54,7 @@ async def init_db():
             audit_log,
         )
         
-        # Create all tables
+        # Create all tables (SQLAlchemy handles "IF NOT EXISTS" logic)
         await conn.run_sync(Base.metadata.create_all)
         
         # Only initialize PostGIS for PostgreSQL

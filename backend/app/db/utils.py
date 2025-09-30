@@ -2,8 +2,8 @@
 Database utilities for handling different database types.
 """
 
-import os
 from sqlalchemy import Text, String
+from app.core.config import settings
 
 def get_geometry_column(srid=4326, **kwargs):
     """
@@ -11,7 +11,7 @@ def get_geometry_column(srid=4326, **kwargs):
     For PostgreSQL: Uses geoalchemy2 Geometry
     For SQLite: Uses Text to store WKT (Well-Known Text)
     """
-    if "postgresql" in os.environ.get("DATABASE_URL", ""):
+    if "postgresql" in settings.DATABASE_URL:
         from geoalchemy2 import Geometry
         return Geometry("Point", srid=srid, **kwargs)
     else:
@@ -24,7 +24,7 @@ def get_uuid_column(**kwargs):
     For PostgreSQL: Uses UUID
     For SQLite: Uses String(36)
     """
-    if "postgresql" in os.environ.get("DATABASE_URL", ""):
+    if "postgresql" in settings.DATABASE_URL:
         from sqlalchemy.dialects.postgresql import UUID
         return UUID(as_uuid=True, **kwargs)
     else:
@@ -36,7 +36,7 @@ def get_jsonb_column(**kwargs):
     For PostgreSQL: Uses JSONB
     For SQLite: Uses Text
     """
-    if "postgresql" in os.environ.get("DATABASE_URL", ""):
+    if "postgresql" in settings.DATABASE_URL:
         from sqlalchemy.dialects.postgresql import JSONB
         return JSONB(**kwargs)
     else:
@@ -48,7 +48,7 @@ def get_inet_column(**kwargs):
     For PostgreSQL: Uses INET
     For SQLite: Uses String(45)
     """
-    if "postgresql" in os.environ.get("DATABASE_URL", ""):
+    if "postgresql" in settings.DATABASE_URL:
         from sqlalchemy.dialects.postgresql import INET
         return INET(**kwargs)
     else:

@@ -7,8 +7,9 @@ import enum
 class UserRole(str, enum.Enum):
     """User roles in the system."""
     CITIZEN = "citizen"
-    ANALYST = "analyst"
-    AUTHORITY = "authority"
+    COASTAL_VOLUNTEER = "coastal_volunteer"
+    COASTAL_GUARD = "coastal_guard"
+    DISASTER_MANAGER = "disaster_manager"
     ADMIN = "admin"
 
 
@@ -35,7 +36,9 @@ class User(BaseModel):
     
     # Profile Information
     profile_picture_url = Column(String(512), nullable=True)
-    organization = Column(String(100), nullable=True)  # For authority users
+    organization = Column(String(100), nullable=True)  # For volunteers, guards, and managers
+    verification_id = Column(String(100), nullable=True)  # For volunteers and guards verification
+    is_verified_volunteer = Column(Boolean, nullable=False, default=False)  # For volunteer verification
     
     # Authentication Tracking
     last_login = Column(DateTime(timezone=True), nullable=True)
