@@ -16,6 +16,15 @@ import uuid
 # Security scheme
 security = HTTPBearer()
 
+# Custom security dependency with debugging
+async def get_credentials_with_debug(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+) -> HTTPAuthorizationCredentials:
+    """Get credentials with debugging information."""
+    print(f"[SECURITY] Authorization header received: {credentials.credentials[:20]}...")
+    print(f"[SECURITY] Scheme: {credentials.scheme}")
+    return credentials
+
 # Password context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -62,14 +71,21 @@ def verify_token(token: str, token_type: str = "access") -> TokenData:
     )
     
     try:
+        print(f"[TOKEN] Verifying token: {token[:20]}... (type: {token_type})")
+        print(f"[TOKEN] Secret key: {settings.SECRET_KEY[:10]}...")
+        print(f"[TOKEN] Algorithm: {settings.ALGORITHM}")
+        
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        print(f"[TOKEN] Token payload: {payload}")
         
         # Check token type
         if payload.get("type") != token_type:
+            print(f"[TOKEN] Token type mismatch: expected {token_type}, got {payload.get('type')}")
             raise credentials_exception
         
         user_id: str = payload.get("sub")
         if user_id is None:
+            print(f"[TOKEN] No user_id in token payload")
             raise credentials_exception
         
         token_data = TokenData(
@@ -78,14 +94,16 @@ def verify_token(token: str, token_type: str = "access") -> TokenData:
             user_role=payload.get("user_role")
         )
         
+        print(f"[TOKEN] Token verified successfully: {token_data}")
         return token_data
         
-    except JWTError:
+    except JWTError as e:
+        print(f"[TOKEN] JWT Error: {type(e).__name__}: {e}")
         raise credentials_exception
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    credentials: HTTPAuthorizationCredentials = Depends(get_credentials_with_debug),
     db: AsyncSession = Depends(get_db)
 ) -> User:
     """Get current authenticated user."""
@@ -97,13 +115,21 @@ async def get_current_user(
     
     try:
         token = credentials.credentials
+        print(f"[AUTH] Token received: {token[:20]}...")
+        print(f"[AUTH] Full token length: {len(token)}")
+        
         token_data = verify_token(token, "access")
+        print(f"[AUTH] Token data: user_id={token_data.user_id}, email={token_data.email}, role={token_data.user_role}")
         
         user = await crud_user.get_by_id(db, user_id=token_data.user_id)
         if user is None:
+            print(f"[AUTH] User not found for ID: {token_data.user_id}")
             raise credentials_exception
         
+        print(f"[AUTH] User found: {user.email}, role: {user.user_role}, active: {user.is_active}")
+        
         if not user.is_active:
+            print(f"[AUTH] User inactive: {user.email}")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Inactive user"
@@ -111,9 +137,11 @@ async def get_current_user(
         
         return user
         
-    except HTTPException:
+    except HTTPException as e:
+        print(f"[AUTH] HTTPException: {e.status_code} - {e.detail}")
         raise
-    except Exception:
+    except Exception as e:
+        print(f"[AUTH] Exception in get_current_user: {type(e).__name__}: {e}")
         raise credentials_exception
 
 
@@ -132,11 +160,14 @@ async def get_current_active_user(
 def require_role(required_role: UserRole):
     """Dependency factory for role-based access control."""
     async def role_checker(current_user: User = Depends(get_current_active_user)) -> User:
+        print(f"[ROLE] Role check: user_role={current_user.user_role}, required={required_role}")
         if current_user.user_role != required_role and current_user.user_role != UserRole.ADMIN:
+            print(f"[ROLE] Role access denied: {current_user.user_role} != {required_role}")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Access denied. Required role: {required_role.value}"
             )
+        print(f"[ROLE] Role access granted: {current_user.user_role}")
         return current_user
     
     return role_checker
@@ -145,11 +176,14 @@ def require_role(required_role: UserRole):
 def require_any_role(*required_roles: UserRole):
     """Dependency factory for multiple role access control."""
     async def role_checker(current_user: User = Depends(get_current_active_user)) -> User:
+        print(f"[ROLE] Multi-role check: user_role={current_user.user_role}, required={[r.value for r in required_roles]}")
         if current_user.user_role not in required_roles and current_user.user_role != UserRole.ADMIN:
+            print(f"[ROLE] Multi-role access denied: {current_user.user_role} not in {[r.value for r in required_roles]}")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Access denied. Required roles: {[role.value for role in required_roles]}"
             )
+        print(f"[ROLE] Multi-role access granted: {current_user.user_role}")
         return current_user
     
     return role_checker
@@ -157,10 +191,13 @@ def require_any_role(*required_roles: UserRole):
 
 # Common role dependencies
 require_citizen = require_role(UserRole.CITIZEN)
-require_analyst = require_role(UserRole.ANALYST)
-require_authority = require_role(UserRole.AUTHORITY)
+require_coastal_volunteer = require_role(UserRole.COASTAL_VOLUNTEER)
+require_coastal_guard = require_role(UserRole.COASTAL_GUARD)
+require_disaster_manager = require_role(UserRole.DISASTER_MANAGER)
 require_admin = require_role(UserRole.ADMIN)
 
 # Multi-role dependencies
-require_analyst_or_authority = require_any_role(UserRole.ANALYST, UserRole.AUTHORITY)
-require_authority_or_admin = require_any_role(UserRole.AUTHORITY, UserRole.ADMIN)
+require_volunteer_or_guard = require_any_role(UserRole.COASTAL_VOLUNTEER, UserRole.COASTAL_GUARD)
+require_guard_or_manager = require_any_role(UserRole.COASTAL_GUARD, UserRole.DISASTER_MANAGER)
+require_official_roles = require_any_role(UserRole.COASTAL_VOLUNTEER, UserRole.COASTAL_GUARD, UserRole.DISASTER_MANAGER)
+require_management_roles = require_any_role(UserRole.COASTAL_GUARD, UserRole.DISASTER_MANAGER, UserRole.ADMIN)

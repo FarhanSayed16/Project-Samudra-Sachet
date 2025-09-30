@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
     
     # Database Configuration
-    DATABASE_URL: str = "sqlite+aiosqlite:///./test.db"
+    DATABASE_URL: str = "sqlite+aiosqlite:///./samudra_sachet.db"
     
     # Security Configuration
     SECRET_KEY: str = "your-secret-key-change-in-production"
