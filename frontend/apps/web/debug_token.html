@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Token</title>
+</head>
+<body>
+    <h1>Token Debug</h1>
+    <div id="output"></div>
+    
+    <script>
+        function debugToken() {
+            const output = document.getElementById('output');
+            
+            // Check localStorage
+            const persistAuth = localStorage.getItem('persist:auth');
+            console.log('persist:auth:', persistAuth);
+            
+            if (persistAuth) {
+                try {
+                    const parsed = JSON.parse(persistAuth);
+                    console.log('Parsed persist auth:', parsed);
+                    
+                    const authState = parsed.auth;
+                    console.log('Auth state:', authState);
+                    
+                    const token = authState?.token;
+                    console.log('Token:', token);
+                    
+                    output.innerHTML = `
+                        <h2>Token Debug Results:</h2>
+                        <p><strong>persist:auth exists:</strong> ${persistAuth ? 'YES' : 'NO'}</p>
+                        <p><strong>Token found:</strong> ${token ? 'YES' : 'NO'}</p>
+                        <p><strong>Token preview:</strong> ${token ? token.substring(0, 50) + '...' : 'None'}</p>
+                        <p><strong>Full token:</strong> ${token || 'None'}</p>
+                        
+                        <h3>Raw localStorage:</h3>
+                        <pre>${JSON.stringify(JSON.parse(persistAuth), null, 2)}</pre>
+                        
+                        <h3>Test API Call:</h3>
+                        <button onclick="testApiCall()">Test API Call with Token</button>
+                        <div id="apiResult"></div>
+                    `;
+                } catch (error) {
+                    output.innerHTML = `<p>Error parsing localStorage: ${error.message}</p>`;
+                }
+            } else {
+                output.innerHTML = '<p>No persist:auth found in localStorage</p>';
+            }
+        }
+        
+        function testApiCall() {
+            const persistAuth = localStorage.getItem('persist:auth');
+            if (!persistAuth) {
+                document.getElementById('apiResult').innerHTML = '<p>No token found</p>';
+                return;
+            }
+            
+            const parsed = JSON.parse(persistAuth);
+            const token = parsed.auth?.token;
+            
+            if (!token) {
+                document.getElementById('apiResult').innerHTML = '<p>No token in auth state</p>';
+                return;
+            }
+            
+            // Test API call
+            fetch('http://localhost:8000/api/v1/reports/public?limit=5', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                document.getElementById('apiResult').innerHTML = `
+                    <p><strong>Status:</strong> ${response.status}</p>
+                    <p><strong>Headers sent:</strong> Authorization: Bearer ${token.substring(0, 20)}...</p>
+                `;
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('apiResult').innerHTML += `
+                    <p><strong>Response:</strong> ${JSON.stringify(data, null, 2)}</p>
+                `;
+            })
+            .catch(error => {
+                document.getElementById('apiResult').innerHTML = `
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+            });
+        }
+        
+        // Run debug on page load
+        window.onload = debugToken;
+    </script>
+</body>
+</html>

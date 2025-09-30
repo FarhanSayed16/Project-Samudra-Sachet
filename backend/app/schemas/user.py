@@ -13,6 +13,7 @@ class UserBase(BaseModel):
     user_role: UserRole = UserRole.CITIZEN
     language_preference: str = Field(default="en", max_length=10)
     organization: Optional[str] = Field(None, max_length=100)
+    verification_id: Optional[str] = Field(None, max_length=100)
 
 
 class UserCreate(UserBase):
@@ -27,6 +28,8 @@ class UserUpdate(BaseModel):
     language_preference: Optional[str] = Field(None, max_length=10)
     organization: Optional[str] = Field(None, max_length=100)
     profile_picture_url: Optional[str] = Field(None, max_length=512)
+    verification_id: Optional[str] = Field(None, max_length=100)
+    is_verified_volunteer: Optional[bool] = None
 
 
 class UserInDB(UserBase):
@@ -37,6 +40,8 @@ class UserInDB(UserBase):
     is_verified: bool
     is_active: bool
     profile_picture_url: Optional[str] = None
+    verification_id: Optional[str] = None
+    is_verified_volunteer: bool
     created_at: datetime
     updated_at: datetime
     last_login: Optional[datetime] = None
@@ -59,6 +64,8 @@ class UserResponse(BaseModel):
     is_active: bool
     profile_picture_url: Optional[str] = None
     organization: Optional[str] = None
+    verification_id: Optional[str] = None
+    is_verified_volunteer: bool
     created_at: datetime
 
 
