@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.security import (
     get_current_active_user,
-    require_analyst_or_authority,
+    require_official_roles,
     require_admin
 )
 from app.db.session import get_db
@@ -28,7 +28,7 @@ router = APIRouter()
 async def analyze_image(
     image_file: UploadFile = File(...),
     analysis_type: str = Form(..., regex="^(image_classification|hazard_detection)$"),
-    current_user: User = Depends(require_analyst_or_authority),
+    current_user: User = Depends(require_official_roles),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -77,7 +77,7 @@ async def analyze_image(
 async def analyze_text(
     text_content: str = Form(..., min_length=1, max_length=10000),
     analysis_type: str = Form(..., regex="^(sentiment_analysis|ner_extraction|hazard_detection)$"),
-    current_user: User = Depends(require_analyst_or_authority),
+    current_user: User = Depends(require_official_roles),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -123,7 +123,7 @@ async def analyze_text(
 @router.get("/{analysis_id}", response_model=MediaAnalysisSchema)
 async def get_analysis_results(
     analysis_id: uuid.UUID,
-    current_user: User = Depends(require_analyst_or_authority),
+    current_user: User = Depends(require_official_roles),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -146,7 +146,7 @@ async def list_analysis_jobs(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     status: Optional[str] = Query(None),
-    current_user: User = Depends(require_analyst_or_authority),
+    current_user: User = Depends(require_official_roles),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -175,7 +175,7 @@ async def batch_analysis_request(
     report_ids: List[uuid.UUID] = Form(...),
     post_ids: List[uuid.UUID] = Form(...),
     analysis_type: str = Form(..., regex="^(image_classification|sentiment_analysis|ner_extraction|hazard_detection)$"),
-    current_user: User = Depends(require_analyst_or_authority),
+    current_user: User = Depends(require_official_roles),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -207,7 +207,7 @@ async def batch_analysis_request(
 
 @router.get("/models")
 async def list_available_models(
-    current_user: User = Depends(require_analyst_or_authority),
+    current_user: User = Depends(require_official_roles),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -261,7 +261,7 @@ async def retrain_model(
 async def get_analysis_statistics(
     hours: int = Query(24, ge=1, le=168),
     analysis_type: Optional[AnalysisType] = Query(None),
-    current_user: User = Depends(require_analyst_or_authority),
+    current_user: User = Depends(require_official_roles),
     db: AsyncSession = Depends(get_db)
 ):
     """

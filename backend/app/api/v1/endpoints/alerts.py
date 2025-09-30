@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.security import (
     get_current_active_user,
-    require_authority_or_admin
+    require_management_roles
 )
 from app.db.session import get_db
 from app.models.user import User
@@ -23,7 +23,7 @@ router = APIRouter()
 @router.post("/", response_model=AlertSchema, status_code=status.HTTP_201_CREATED)
 async def create_alert(
     alert_data: AlertCreate,
-    current_user: User = Depends(require_authority_or_admin),
+    current_user: User = Depends(require_management_roles),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -67,7 +67,7 @@ async def list_alerts(
     status: Optional[str] = Query(None),
     date_from: Optional[datetime] = Query(None),
     date_to: Optional[datetime] = Query(None),
-    current_user: User = Depends(require_authority_or_admin),
+    current_user: User = Depends(require_management_roles),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -108,7 +108,7 @@ async def list_alerts(
 @router.get("/{alert_id}", response_model=AlertSchema)
 async def get_alert(
     alert_id: uuid.UUID,
-    current_user: User = Depends(require_authority_or_admin),
+    current_user: User = Depends(require_management_roles),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -149,7 +149,7 @@ async def get_alert(
 async def send_test_alert(
     test_message: str = Form(..., min_length=1, max_length=500),
     alert_level: int = Form(3, ge=1, le=5),
-    current_user: User = Depends(require_authority_or_admin),
+    current_user: User = Depends(require_management_roles),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -174,7 +174,7 @@ async def send_test_alert(
 
 @router.get("/templates", response_model=List[AlertTemplate])
 async def get_alert_templates(
-    current_user: User = Depends(require_authority_or_admin),
+    current_user: User = Depends(require_management_roles),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -218,7 +218,7 @@ async def get_alert_templates(
 @router.post("/templates", response_model=AlertTemplate, status_code=status.HTTP_201_CREATED)
 async def create_alert_template(
     template_data: AlertTemplate,
-    current_user: User = Depends(require_authority_or_admin),
+    current_user: User = Depends(require_management_roles),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -250,7 +250,7 @@ async def create_alert_template(
 async def cancel_alert(
     alert_id: uuid.UUID,
     cancellation_reason: str = Form(..., min_length=1, max_length=500),
-    current_user: User = Depends(require_authority_or_admin),
+    current_user: User = Depends(require_management_roles),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -280,7 +280,7 @@ async def cancel_alert(
 @router.get("/stats")
 async def get_alert_statistics(
     hours: int = Query(24, ge=1, le=168),
-    current_user: User = Depends(require_authority_or_admin),
+    current_user: User = Depends(require_management_roles),
     db: AsyncSession = Depends(get_db)
 ):
     """

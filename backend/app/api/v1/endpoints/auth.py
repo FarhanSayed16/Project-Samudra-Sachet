@@ -68,10 +68,23 @@ async def login(
     - **email**: User's email address
     - **password**: User's password
     """
+    print(f"[LOGIN] Login attempt: {user_credentials.email}")
+    
     # Authenticate user
     user = await crud_user.get_by_email(db, email=user_credentials.email)
     
-    if not user or not crud_user.verify_password(user_credentials.password, user.password_hash):
+    if not user:
+        print(f"[LOGIN] User not found: {user_credentials.email}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    print(f"[LOGIN] User found: {user.email}, role: {user.user_role}, active: {user.is_active}")
+    
+    if not crud_user.verify_password(user_credentials.password, user.password_hash):
+        print(f"[LOGIN] Password verification failed for: {user_credentials.email}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -79,6 +92,7 @@ async def login(
         )
     
     if not user.is_active:
+        print(f"[LOGIN] User inactive: {user_credentials.email}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account is deactivated"
@@ -105,6 +119,8 @@ async def login(
             "user_role": user.user_role.value
         }
     )
+    
+    print(f"[LOGIN] Login successful: {user.email}, tokens created")
     
     return Token(
         access_token=access_token,

@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import auth, users, reports_simple, verification, social_media, analysis, hotspots, admin, alerts
+from app.api.v1.endpoints import auth, users, reports, reports_simple, verification, social_media, analysis, hotspots, admin, alerts
 
 # Create main API router for v1
 api_router = APIRouter()
@@ -20,9 +20,16 @@ api_router.include_router(
 
 # Include reports routes
 api_router.include_router(
-     reports_simple.router,
+    reports.router,
     prefix="/reports",
-    tags=["Citizen Reports"]
+    tags=["Reports Management"]
+)
+
+# Include simple reports routes
+api_router.include_router(
+    reports_simple.router,
+    prefix="/reports-simple",
+    tags=["Simple Reports"]
 )
 
 # Include verification routes
