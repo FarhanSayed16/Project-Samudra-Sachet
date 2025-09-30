@@ -1,7 +1,7 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Form
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.security import require_analyst_or_authority
+from app.core.security import require_official_roles
 from app.db.session import get_db
 from app.crud.crud_report import crud_report
 from app.crud.crud_user import crud_user
@@ -20,7 +20,7 @@ router = APIRouter()
 async def submit_verification(
     report_id: uuid.UUID,
     verification_data: VerificationLogCreate,
-    current_user: User = Depends(require_analyst_or_authority),
+    current_user: User = Depends(require_official_roles),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -65,7 +65,7 @@ async def submit_verification(
 @router.get("/{report_id}/verifications")
 async def get_verification_history(
     report_id: uuid.UUID,
-    current_user: User = Depends(require_analyst_or_authority),
+    current_user: User = Depends(require_official_roles),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -90,7 +90,7 @@ async def update_verification(
     report_id: uuid.UUID,
     verification_id: uuid.UUID,
     verification_update: VerificationLogUpdate,
-    current_user: User = Depends(require_analyst_or_authority),
+    current_user: User = Depends(require_official_roles),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -128,7 +128,7 @@ async def escalate_verification(
     report_id: uuid.UUID,
     escalated_to: uuid.UUID = Form(...),
     comments: Optional[str] = Form(None),
-    current_user: User = Depends(require_analyst_or_authority),
+    current_user: User = Depends(require_official_roles),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -188,7 +188,7 @@ async def escalate_verification(
 @router.get("/{report_id}/analysis")
 async def get_report_analysis(
     report_id: uuid.UUID,
-    current_user: User = Depends(require_analyst_or_authority),
+    current_user: User = Depends(require_official_roles),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -216,7 +216,7 @@ async def get_report_analysis(
 async def run_analysis(
     report_id: uuid.UUID,
     analysis_type: str = Form(..., regex="^(image_classification|sentiment_analysis|ner_extraction|hazard_detection)$"),
-    current_user: User = Depends(require_analyst_or_authority),
+    current_user: User = Depends(require_official_roles),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -245,7 +245,7 @@ async def run_analysis(
 @router.get("/{report_id}/timeline")
 async def get_report_timeline(
     report_id: uuid.UUID,
-    current_user: User = Depends(require_analyst_or_authority),
+    current_user: User = Depends(require_official_roles),
     db: AsyncSession = Depends(get_db)
 ):
     """

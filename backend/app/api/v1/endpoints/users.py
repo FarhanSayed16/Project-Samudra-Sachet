@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.security import (
     get_current_active_user,
     require_admin,
-    require_authority_or_admin
+    require_management_roles
 )
 from app.db.session import get_db
 from app.crud.crud_user import crud_user
@@ -180,7 +180,7 @@ async def get_user_activity(
 @router.get("/{user_id}", response_model=UserSchema)
 async def get_user_by_id(
     user_id: uuid.UUID,
-    current_user: User = Depends(require_authority_or_admin),
+    current_user: User = Depends(require_management_roles),
     db: AsyncSession = Depends(get_db)
 ):
     """

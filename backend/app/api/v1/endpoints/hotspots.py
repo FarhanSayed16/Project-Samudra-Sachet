@@ -3,8 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.security import (
     get_current_active_user,
-    require_analyst_or_authority,
-    require_authority_or_admin
+    require_official_roles,
+    require_management_roles
 )
 from app.db.session import get_db
 from app.crud.crud_hotspot import crud_hotspot
@@ -86,7 +86,7 @@ async def get_hotspot(
 @router.post("/", response_model=HotspotSchema, status_code=status.HTTP_201_CREATED)
 async def create_hotspot(
     hotspot_data: HotspotCreate,
-    current_user: User = Depends(require_authority_or_admin),
+    current_user: User = Depends(require_management_roles),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -104,7 +104,7 @@ async def create_hotspot(
 async def update_hotspot(
     hotspot_id: uuid.UUID,
     hotspot_update: HotspotUpdate,
-    current_user: User = Depends(require_analyst_or_authority),
+    current_user: User = Depends(require_official_roles),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -130,7 +130,7 @@ async def update_hotspot(
 @router.delete("/{hotspot_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_hotspot(
     hotspot_id: uuid.UUID,
-    current_user: User = Depends(require_authority_or_admin),
+    current_user: User = Depends(require_management_roles),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -183,7 +183,7 @@ async def get_hotspot_social_media(
     hotspot_id: uuid.UUID,
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
-    current_user: User = Depends(require_analyst_or_authority),
+    current_user: User = Depends(require_official_roles),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -215,7 +215,7 @@ async def send_hotspot_alert(
     hotspot_id: uuid.UUID,
     alert_message: str = Form(..., min_length=1, max_length=500),
     alert_level: int = Form(..., ge=1, le=5),
-    current_user: User = Depends(require_authority_or_admin),
+    current_user: User = Depends(require_management_roles),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -301,7 +301,7 @@ async def generate_hotspots(
     hours: int = Form(6, ge=1, le=168),
     min_reports: int = Form(3, ge=1, le=20),
     cluster_radius_km: float = Form(5.0, gt=0, le=50),
-    current_user: User = Depends(require_authority_or_admin),
+    current_user: User = Depends(require_management_roles),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -341,7 +341,7 @@ async def generate_hotspots(
 
 @router.post("/cleanup", status_code=status.HTTP_200_OK)
 async def cleanup_expired_hotspots(
-    current_user: User = Depends(require_authority_or_admin),
+    current_user: User = Depends(require_management_roles),
     db: AsyncSession = Depends(get_db)
 ):
     """
