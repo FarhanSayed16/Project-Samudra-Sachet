@@ -1,119 +1,383 @@
-// File: E:/civic-issue-reporter/apps/mobile/lib/features/profile/presentation/profile_screen.dart
-
 import 'package:flutter/material.dart';
-import 'package:percent_indicator/circular_percent_indicator.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../settings/presentation/settings_screen.dart'; // We will create this next
+import 'package:lucide_flutter/lucide_flutter.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/api/api_client.dart';
+import '../../core/services/storage_service.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Mock data based on your design
-    const user = {
-      "name": "Ananya Singh",
-      "handle": "@AnanyaRanchi",
-      "avatarUrl": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=face",
-      "issuesReported": 69,
-      "followers": 1500,
-      "following": 250,
-      "trustScore": 1.0, // 1.0 means 100%
-    };
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
 
+class _ProfileScreenState extends State<ProfileScreen> {
+  Map<String, dynamic>? _userProfile;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    setState(() => _isLoading = true);
+    try {
+      final result = await ApiClient.getUserProfile();
+      if (result['success'] == true) {
+        setState(() {
+          _userProfile = result['data'];
+          _isLoading = false;
+        });
+      } else {
+        setState(() => _isLoading = false);
+        _showErrorSnackBar(result['message'] ?? 'Failed to load profile');
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      _showErrorSnackBar('Error loading profile: ${e.toString()}');
+    }
+  }
+
+  Future<void> _logout() async {
+    try {
+      await ApiClient.logout();
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed('/login');
+      }
+    } catch (e) {
+      _showErrorSnackBar('Error logging out: ${e.toString()}');
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.error,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        leading: const BackButton(),
         title: const Text('Profile'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const SettingsScreen()),
-              );
-            },
+            onPressed: _logout,
+            icon: const Icon(LucideIcons.logOut),
           ),
         ],
       ),
-      body: SingleChildScrollView(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _userProfile == null
+              ? _buildErrorState()
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      _buildProfileHeader(),
+                      const SizedBox(height: 24),
+                      _buildProfileInfo(),
+                      const SizedBox(height: 24),
+                      _buildSettings(),
+                    ],
+                  ),
+                ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(LucideIcons.userX, size: 64, color: AppColors.error),
+          const SizedBox(height: 16),
+          Text(
+            'Profile Not Found',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: AppColors.error,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Unable to load your profile information',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: _loadProfile,
+            icon: const Icon(LucideIcons.refreshCw),
+            label: const Text('Retry'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileHeader() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            // User Info Section
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 24.0),
-              child: Column(
-                children: [
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundImage: NetworkImage(user["avatarUrl"] as String),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(user["name"] as String, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                  Text(user["handle"] as String, style: const TextStyle(fontSize: 16, color: AppColors.textLight)),
-                ],
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                gradient: AppColors.oceanGradient,
+                borderRadius: BorderRadius.circular(40),
+              ),
+              child: Icon(
+                LucideIcons.user,
+                size: 40,
+                color: Colors.white,
               ),
             ),
-
-            // Stats Row
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _StatItem(count: user["issuesReported"] as int, label: 'Issues Reported'),
-                  _StatItem(count: user["followers"] as int, label: 'Followers'),
-                  _StatItem(count: user["following"] as int, label: 'Following'),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
-
-            // Trust Score Gauge
-            CircularPercentIndicator(
-              radius: 100.0,
-              lineWidth: 15.0,
-              percent: user["trustScore"] as double,
-              center: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    "${((user["trustScore"] as double) * 100).toInt()}%",
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 40.0, color: AppColors.success),
+            const SizedBox(height: 16),
+            Text(
+              _userProfile?['full_name'] ?? 'Unknown User',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
                   ),
-                  const Text(
-                    "Trust score",
-                    style: TextStyle(fontSize: 16.0, color: AppColors.textLight),
-                  )
-                ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _userProfile?['email'] ?? 'No email',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: _getRoleColor(_userProfile?['user_role'])
+                    .withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: _getRoleColor(_userProfile?['user_role'])
+                      .withValues(alpha: 0.3),
+                ),
               ),
-              circularStrokeCap: CircularStrokeCap.round,
-              backgroundColor: Colors.green.shade100,
-              progressColor: AppColors.success,
+              child: Text(
+                _getRoleDisplayName(_userProfile?['user_role']),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: _getRoleColor(_userProfile?['user_role']),
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
             ),
           ],
         ),
       ),
     );
   }
-}
 
-// Helper widget for the stat items
-class _StatItem extends StatelessWidget {
-  final int count;
-  final String label;
-  const _StatItem({required this.count, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(count.toString(), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textLight)),
-      ],
+  Widget _buildProfileInfo() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Profile Information',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: 16),
+            _buildInfoRow(LucideIcons.mail, 'Email',
+                _userProfile?['email'] ?? 'Not provided'),
+            _buildInfoRow(LucideIcons.phone, 'Phone',
+                _userProfile?['phone'] ?? 'Not provided'),
+            _buildInfoRow(LucideIcons.calendar, 'Member Since',
+                _formatDate(_userProfile?['created_at'])),
+            _buildInfoRow(LucideIcons.shield, 'Status',
+                _userProfile?['is_active'] == true ? 'Active' : 'Inactive'),
+          ],
+        ),
+      ),
     );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: AppColors.textSecondary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                ),
+                Text(
+                  value,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSettings() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Settings',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: 16),
+            _buildSettingTile(
+              icon: LucideIcons.bell,
+              title: 'Notifications',
+              subtitle: 'Manage your notification preferences',
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                      content: Text('Notifications settings coming soon!')),
+                );
+              },
+            ),
+            _buildSettingTile(
+              icon: LucideIcons.shield,
+              title: 'Privacy & Security',
+              subtitle: 'Manage your privacy settings',
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                      content: Text('Privacy settings coming soon!')),
+                );
+              },
+            ),
+            _buildSettingTile(
+              icon: LucideIcons.helpCircle,
+              title: 'Help & Support',
+              subtitle: 'Get help and contact support',
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Help & support coming soon!')),
+                );
+              },
+            ),
+            _buildSettingTile(
+              icon: LucideIcons.logOut,
+              title: 'Sign Out',
+              subtitle: 'Sign out of your account',
+              onTap: _logout,
+              isDestructive: true,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSettingTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    bool isDestructive = false,
+  }) {
+    return ListTile(
+      leading: Icon(
+        icon,
+        color: isDestructive ? AppColors.error : AppColors.primary,
+      ),
+      title: Text(
+        title,
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: isDestructive ? AppColors.error : null,
+              fontWeight: FontWeight.w500,
+            ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppColors.textSecondary,
+            ),
+      ),
+      trailing: Icon(
+        LucideIcons.chevronRight,
+        color: AppColors.textSecondary,
+        size: 20,
+      ),
+      onTap: onTap,
+    );
+  }
+
+  Color _getRoleColor(String? role) {
+    switch (role?.toLowerCase()) {
+      case 'citizen':
+        return AppColors.info;
+      case 'coastal_volunteer':
+        return AppColors.success;
+      case 'coastal_guard':
+        return AppColors.warning;
+      case 'disaster_manager':
+        return AppColors.danger;
+      case 'admin':
+        return AppColors.primary;
+      default:
+        return AppColors.textSecondary;
+    }
+  }
+
+  String _getRoleDisplayName(String? role) {
+    switch (role?.toLowerCase()) {
+      case 'citizen':
+        return 'Citizen';
+      case 'coastal_volunteer':
+        return 'Coastal Volunteer';
+      case 'coastal_guard':
+        return 'Coastal Guard';
+      case 'disaster_manager':
+        return 'Disaster Manager';
+      case 'admin':
+        return 'Administrator';
+      default:
+        return 'Unknown';
+    }
+  }
+
+  String _formatDate(String? dateString) {
+    if (dateString == null) return 'Unknown';
+    try {
+      final date = DateTime.parse(dateString);
+      return '${date.day}/${date.month}/${date.year}';
+    } catch (e) {
+      return 'Unknown';
+    }
   }
 }
