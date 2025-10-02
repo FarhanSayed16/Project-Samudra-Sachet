@@ -1,7 +1,7 @@
-name: mobile
-description: A new Flutter project.
+name: samudra_sachet_mobile
+description: Samudra Sachet - Ocean Safety Mobile App for Citizens
 
-publish_to: 'none' # Remove this if you plan to publish to pub.dev
+publish_to: 'none'
 
 version: 1.0.0+1
 
@@ -12,28 +12,28 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # UI
+  # UI & Theming
   google_fonts: ^6.2.1
   flutter_svg: ^2.0.10+1
   percent_indicator: ^4.2.3
-  timeago: ^3.6.1        # ✅ Added here
+  timeago: ^3.6.1
 
   # Networking & Storage
   dio: ^5.4.3+1
   flutter_secure_storage: ^9.2.2
+  shared_preferences: ^2.2.3
 
-  # Device features
+  # Device Features
   camera: ^0.11.0+1
   geolocator: ^12.0.0
-  geocoding: ^3.0.0       # ✅ Reverse geocoding for readable address
+  geocoding: ^3.0.0
   image_picker: ^1.1.2
-  shared_preferences: ^2.2.3
   web_socket_channel: ^2.4.0
   flutter_map: ^6.1.0
-  share_plus: ^9.0.0      # ✅ For social sharing
+  share_plus: ^9.0.0
 
   # Icons & Utils
-  lucide_flutter: any
+  lucide_flutter: ^0.544.0
   intl: ^0.19.0
 
 dev_dependencies:
