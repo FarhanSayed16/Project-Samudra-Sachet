@@ -10,12 +10,7 @@ backend/app/models/__pycache__/
 mobile/node_modules/
 frontend/apps/mobile/node_modules/
 frontend/apps/mobile/dist/
-frontend/apps/mobile/.expo/
-frontend/apps/mobile/.expo-shared/
-frontend/apps/mobile/.dart_tool/
-frontend/apps/mobile/ios/Pods/
-frontend/apps/mobile/.idea/
-frontend/apps/mobile/android/
+
 frontend/apps/mobile/build/
-frontend/apps/mobile/ios
+
 
