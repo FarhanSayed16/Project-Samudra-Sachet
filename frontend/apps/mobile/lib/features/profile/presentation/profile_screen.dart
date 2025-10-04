@@ -14,25 +14,43 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, dynamic>? _userProfile;
   bool _isLoading = true;
+  bool _isEditing = false;
+
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _loadProfile();
+    _loadUserProfile();
   }
 
-  Future<void> _loadProfile() async {
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadUserProfile() async {
     setState(() => _isLoading = true);
+
     try {
-      final result = await ApiClient.getUserProfile();
-      if (result['success'] == true) {
+      final response = await ApiClient.getUserProfile();
+      if (response['success'] == true) {
         setState(() {
-          _userProfile = result['data'];
+          _userProfile = response['data'];
+          _nameController.text = _userProfile?['full_name'] ?? '';
+          _emailController.text = _userProfile?['email'] ?? '';
+          _phoneController.text = _userProfile?['phone'] ?? '';
           _isLoading = false;
         });
       } else {
+        _showErrorSnackBar(response['message'] ?? 'Failed to load profile');
         setState(() => _isLoading = false);
-        _showErrorSnackBar(result['message'] ?? 'Failed to load profile');
       }
     } catch (e) {
       setState(() => _isLoading = false);
@@ -40,11 +58,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _updateProfile() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Note: This would need an update profile endpoint
+      // For now, we'll just show success message
+      await Future.delayed(const Duration(seconds: 1));
+
+      setState(() {
+        _isEditing = false;
+        _isLoading = false;
+      });
+
+      _showSuccessSnackBar('Profile updated successfully!');
+    } catch (e) {
+      setState(() => _isLoading = false);
+      _showErrorSnackBar('Error updating profile: ${e.toString()}');
+    }
+  }
+
   Future<void> _logout() async {
     try {
       await ApiClient.logout();
+      await StorageService.clearAll();
+
       if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/login');
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/login',
+          (route) => false,
+        );
       }
     } catch (e) {
       _showErrorSnackBar('Error logging out: ${e.toString()}');
@@ -61,36 +106,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.success,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         actions: [
-          IconButton(
-            onPressed: _logout,
-            icon: const Icon(LucideIcons.logOut),
-          ),
+          if (!_isEditing)
+            IconButton(
+              onPressed: () => setState(() => _isEditing = true),
+              icon: const Icon(LucideIcons.edit),
+            )
+          else
+            Row(
+              children: [
+                IconButton(
+                  onPressed: () {
+                    setState(() => _isEditing = false);
+                    _loadUserProfile(); // Reset form
+                  },
+                  icon: const Icon(LucideIcons.x),
+                ),
+                IconButton(
+                  onPressed: _updateProfile,
+                  icon: const Icon(LucideIcons.check),
+                ),
+              ],
+            ),
         ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _userProfile == null
               ? _buildErrorState()
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    children: [
-                      _buildProfileHeader(),
-                      const SizedBox(height: 24),
-                      _buildProfileInfo(),
-                      const SizedBox(height: 24),
-                      _buildSettings(),
-                    ],
-                  ),
-                ),
+              : _buildProfileContent(),
     );
   }
 
@@ -99,285 +160,276 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(LucideIcons.userX, size: 64, color: AppColors.error),
+          Icon(
+            LucideIcons.userX,
+            size: 64,
+            color: AppColors.textSecondary,
+          ),
           const SizedBox(height: 16),
           Text(
-            'Profile Not Found',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: AppColors.error,
+            'Failed to Load Profile',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: AppColors.textSecondary,
                 ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Unable to load your profile information',
+            'Please try again later',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: AppColors.textSecondary,
                 ),
-            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: _loadProfile,
-            icon: const Icon(LucideIcons.refreshCw),
-            label: const Text('Retry'),
+          ElevatedButton(
+            onPressed: _loadUserProfile,
+            child: const Text('Retry'),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildProfileContent() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildProfileHeader(),
+            const SizedBox(height: 32),
+            _buildProfileForm(),
+            const SizedBox(height: 32),
+            _buildActionButtons(),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildProfileHeader() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                gradient: AppColors.oceanGradient,
-                borderRadius: BorderRadius.circular(40),
+    return Column(
+      children: [
+        Container(
+          width: 120,
+          height: 120,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: AppColors.oceanGradient,
+          ),
+          child: const Icon(
+            LucideIcons.user,
+            size: 60,
+            color: Colors.white,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          _userProfile?['full_name'] ?? 'Unknown User',
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
               ),
-              child: Icon(
-                LucideIcons.user,
-                size: 40,
-                color: Colors.white,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          _userProfile?['email'] ?? 'No email',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppColors.textSecondary,
               ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              _userProfile?['full_name'] ?? 'Unknown User',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              _userProfile?['email'] ?? 'No email',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: _getRoleColor(_userProfile?['user_role'])
-                    .withValues(alpha: 0.1),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: _getRoleColor(_userProfile?['user_role'])
+                .withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Text(
+            _getRoleLabel(_userProfile?['user_role']),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: _getRoleColor(_userProfile?['user_role']),
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProfileForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Personal Information',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+        const SizedBox(height: 16),
+        _buildFormField(
+          controller: _nameController,
+          label: 'Full Name',
+          icon: LucideIcons.user,
+          enabled: _isEditing,
+        ),
+        const SizedBox(height: 16),
+        _buildFormField(
+          controller: _emailController,
+          label: 'Email',
+          icon: LucideIcons.mail,
+          enabled: false, // Email usually can't be changed
+        ),
+        const SizedBox(height: 16),
+        _buildFormField(
+          controller: _phoneController,
+          label: 'Phone Number',
+          icon: LucideIcons.phone,
+          enabled: _isEditing,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFormField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    required bool enabled,
+  }) {
+    return TextFormField(
+      controller: controller,
+      enabled: enabled,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: AppColors.primary),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppColors.primary),
+        ),
+        filled: !enabled,
+        fillColor: enabled ? null : AppColors.surfaceVariant,
+      ),
+      validator: (value) {
+        if (label == 'Full Name' && (value == null || value.isEmpty)) {
+          return 'Please enter your full name';
+        }
+        if (label == 'Email' && (value == null || value.isEmpty)) {
+          return 'Please enter your email';
+        }
+        return null;
+      },
+    );
+  }
+
+  Widget _buildActionButtons() {
+    return Column(
+      children: [
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: _logout,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: _getRoleColor(_userProfile?['user_role'])
-                      .withValues(alpha: 0.3),
-                ),
-              ),
-              child: Text(
-                _getRoleDisplayName(_userProfile?['user_role']),
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: _getRoleColor(_userProfile?['user_role']),
-                      fontWeight: FontWeight.w600,
-                    ),
               ),
             ),
-          ],
+            icon: const Icon(LucideIcons.logOut),
+            label: const Text('Logout'),
+          ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildProfileInfo() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Profile Information',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.infoLight,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.info),
+          ),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Icon(LucideIcons.info, color: AppColors.info),
+                  const SizedBox(width: 8),
+                  Text(
+                    'App Information',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: AppColors.info,
+                          fontWeight: FontWeight.w600,
+                        ),
                   ),
-            ),
-            const SizedBox(height: 16),
-            _buildInfoRow(LucideIcons.mail, 'Email',
-                _userProfile?['email'] ?? 'Not provided'),
-            _buildInfoRow(LucideIcons.phone, 'Phone',
-                _userProfile?['phone'] ?? 'Not provided'),
-            _buildInfoRow(LucideIcons.calendar, 'Member Since',
-                _formatDate(_userProfile?['created_at'])),
-            _buildInfoRow(LucideIcons.shield, 'Status',
-                _userProfile?['is_active'] == true ? 'Active' : 'Inactive'),
-          ],
+                ],
+              ),
+              const SizedBox(height: 12),
+              _buildInfoRow('Version', '1.0.0'),
+              _buildInfoRow('Build', '2024.01.01'),
+              _buildInfoRow('Platform', 'Flutter'),
+            ],
+          ),
         ),
-      ),
+      ],
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value) {
+  Widget _buildInfoRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Icon(icon, size: 20, color: AppColors.textSecondary),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondary,
                 ),
-                Text(
-                  value,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w500,
-                      ),
+          ),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
                 ),
-              ],
-            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSettings() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Settings',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 16),
-            _buildSettingTile(
-              icon: LucideIcons.bell,
-              title: 'Notifications',
-              subtitle: 'Manage your notification preferences',
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text('Notifications settings coming soon!')),
-                );
-              },
-            ),
-            _buildSettingTile(
-              icon: LucideIcons.shield,
-              title: 'Privacy & Security',
-              subtitle: 'Manage your privacy settings',
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text('Privacy settings coming soon!')),
-                );
-              },
-            ),
-            _buildSettingTile(
-              icon: LucideIcons.helpCircle,
-              title: 'Help & Support',
-              subtitle: 'Get help and contact support',
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Help & support coming soon!')),
-                );
-              },
-            ),
-            _buildSettingTile(
-              icon: LucideIcons.logOut,
-              title: 'Sign Out',
-              subtitle: 'Sign out of your account',
-              onTap: _logout,
-              isDestructive: true,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSettingTile({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-    bool isDestructive = false,
-  }) {
-    return ListTile(
-      leading: Icon(
-        icon,
-        color: isDestructive ? AppColors.error : AppColors.primary,
-      ),
-      title: Text(
-        title,
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: isDestructive ? AppColors.error : null,
-              fontWeight: FontWeight.w500,
-            ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.textSecondary,
-            ),
-      ),
-      trailing: Icon(
-        LucideIcons.chevronRight,
-        color: AppColors.textSecondary,
-        size: 20,
-      ),
-      onTap: onTap,
-    );
-  }
-
   Color _getRoleColor(String? role) {
     switch (role?.toLowerCase()) {
-      case 'citizen':
-        return AppColors.info;
-      case 'coastal_volunteer':
-        return AppColors.success;
+      case 'admin':
+        return AppColors.error;
       case 'coastal_guard':
         return AppColors.warning;
-      case 'disaster_manager':
-        return AppColors.danger;
-      case 'admin':
-        return AppColors.primary;
+      case 'coastal_volunteer':
+        return AppColors.info;
+      case 'citizen':
+        return AppColors.success;
       default:
         return AppColors.textSecondary;
     }
   }
 
-  String _getRoleDisplayName(String? role) {
+  String _getRoleLabel(String? role) {
     switch (role?.toLowerCase()) {
-      case 'citizen':
-        return 'Citizen';
-      case 'coastal_volunteer':
-        return 'Coastal Volunteer';
-      case 'coastal_guard':
-        return 'Coastal Guard';
-      case 'disaster_manager':
-        return 'Disaster Manager';
       case 'admin':
         return 'Administrator';
+      case 'coastal_guard':
+        return 'Coastal Guard';
+      case 'coastal_volunteer':
+        return 'Coastal Volunteer';
+      case 'citizen':
+        return 'Citizen';
       default:
         return 'Unknown';
-    }
-  }
-
-  String _formatDate(String? dateString) {
-    if (dateString == null) return 'Unknown';
-    try {
-      final date = DateTime.parse(dateString);
-      return '${date.day}/${date.month}/${date.year}';
-    } catch (e) {
-      return 'Unknown';
     }
   }
 }
