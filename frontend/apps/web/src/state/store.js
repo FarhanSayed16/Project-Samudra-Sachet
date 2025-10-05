@@ -6,6 +6,8 @@ import authReducer from './slices/authSlice';
 import reportsReducer from './slices/reportsSlice';
 import hotspotsReducer from './slices/hotspotsSlice';
 import adminReducer from './slices/adminSlice';
+import notificationsReducer from './slices/notificationsSlice';
+import realtimeReducer from './slices/realtimeSlice';
 
 // Persist configuration for auth
 const authPersistConfig = {
@@ -23,6 +25,8 @@ export const store = configureStore({
     reports: reportsReducer,
     hotspots: hotspotsReducer,
     admin: adminReducer,
+    notifications: notificationsReducer,
+    realtime: realtimeReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
