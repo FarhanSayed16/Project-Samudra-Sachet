@@ -26,7 +26,7 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
   final List<Map<String, dynamic>> _hazardTypes = [
     {'value': 'high_waves', 'label': 'High Waves', 'icon': LucideIcons.waves},
     {'value': 'storm', 'label': 'Storm', 'icon': LucideIcons.cloudRain},
-    {'value': 'tsunami', 'label': 'Tsunami', 'icon': LucideIcons.alertTriangle},
+    {'value': 'tsunami', 'label': 'Tsunami', 'icon': LucideIcons.triangleAlert},
     {'value': 'flooding', 'label': 'Flooding', 'icon': LucideIcons.droplets},
     {'value': 'other', 'label': 'Other', 'icon': LucideIcons.helpCircle},
   ];

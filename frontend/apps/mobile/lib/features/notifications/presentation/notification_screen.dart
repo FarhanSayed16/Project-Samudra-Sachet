@@ -111,7 +111,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
           if (_notifications.any((n) => !n['isRead']))
             IconButton(
               onPressed: _markAllAsRead,
-              icon: const Icon(LucideIcons.checkAll),
+              icon: const Icon(LucideIcons.check),
             ),
           IconButton(
             onPressed: _loadNotifications,
@@ -280,7 +280,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
     switch (type) {
       case 'hazard':
-        icon = LucideIcons.alertTriangle;
+        icon = LucideIcons.triangleAlert;
         color = AppColors.error;
         break;
       case 'verification':
