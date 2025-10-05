@@ -7,11 +7,15 @@ import { Ionicons } from '@expo/vector-icons';
 
 // Import screens
 import LoginScreen from './src/screens/LoginScreen';
+import LoadingScreen from './src/screens/LoadingScreen';
 import CitizenDashboard from './src/screens/CitizenDashboard';
 import ViewReportsScreen from './src/screens/ViewReportsScreen';
 import SubmitReportScreen from './src/screens/SubmitReportScreen';
 import SocialMediaScreen from './src/screens/SocialMediaScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+
+// Import components
+import NetworkStatus from './src/components/NetworkStatus';
 
 // Import context
 import { AuthProvider, useAuth } from './src/context/AuthContext';
@@ -58,11 +62,12 @@ function AppNavigator() {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
-    return null; // You can add a loading screen here
+    return <LoadingScreen />;
   }
 
   return (
     <NavigationContainer>
+      <NetworkStatus />
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {user ? (
           <Stack.Screen name="Main" component={CitizenTabs} />
