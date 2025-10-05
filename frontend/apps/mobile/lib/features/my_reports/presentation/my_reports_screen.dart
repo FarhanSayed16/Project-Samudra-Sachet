@@ -296,7 +296,7 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
         if (report['severity_level'] != null)
           Row(
             children: [
-              Icon(LucideIcons.alertTriangle,
+              Icon(LucideIcons.triangleAlert,
                   size: 16, color: AppColors.warning),
               const SizedBox(width: 4),
               Text(
