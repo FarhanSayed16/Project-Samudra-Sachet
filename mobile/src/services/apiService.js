@@ -1,22 +1,51 @@
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_BASE_URL = 'http://localhost:8000/api/v1';
 
 export const apiService = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
+// Token management
+let authToken = null;
+
+export const setAuthToken = (token) => {
+  authToken = token;
+  if (token) {
+    apiService.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  } else {
+    delete apiService.defaults.headers.common['Authorization'];
+  }
+};
+
+export const getAuthToken = () => authToken;
+
 // Request interceptor to add auth token
 apiService.interceptors.request.use(
-  (config) => {
+  async (config) => {
     console.log('📤 API Request:', config.method?.toUpperCase(), config.url);
+    
+    // Add auth token if available
+    if (!authToken) {
+      try {
+        authToken = await AsyncStorage.getItem('authToken');
+        if (authToken) {
+          config.headers.Authorization = `Bearer ${authToken}`;
+        }
+      } catch (error) {
+        console.log('Error getting auth token:', error);
+      }
+    }
+    
     return config;
   },
   (error) => {
+    console.log('❌ Request Error:', error);
     return Promise.reject(error);
   }
 );
@@ -27,13 +56,21 @@ apiService.interceptors.response.use(
     console.log('✅ API Response:', response.status, response.config.url);
     return response;
   },
-  (error) => {
+  async (error) => {
     console.log('❌ API Error:', error.response?.status, error.config?.url, error.message);
     
-    // Handle 401 errors
+    // Handle 401 errors - clear token and redirect to login
     if (error.response?.status === 401) {
-      console.log('🔒 Unauthorized - token may be expired');
-      // You can add token refresh logic here if needed
+      console.log('🔒 Unauthorized - clearing auth token');
+      authToken = null;
+      await AsyncStorage.removeItem('authToken');
+      await AsyncStorage.removeItem('user');
+      // You can dispatch a logout action here if using Redux
+    }
+    
+    // Handle network errors
+    if (!error.response) {
+      error.message = 'Network error. Please check your internet connection.';
     }
     
     return Promise.reject(error);
