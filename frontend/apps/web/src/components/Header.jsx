@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { useSelector } from "react-redux";
-import { Bell, Search, Menu, X } from "lucide-react";
+import { Search, Menu, X } from "lucide-react";
+import NotificationBell from "./NotificationBell";
+import ConnectionStatus from "./ConnectionStatus";
 
 const Header = () => {
   const { user, userRole } = useSelector((state) => state.auth);
@@ -29,12 +31,8 @@ const Header = () => {
           </div>
 
           <div className="flex items-center space-x-4">
-            <button className="p-2 hover:bg-gray-100 rounded-md relative">
-              <Bell size={20} className="text-gray-600" />
-              <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                3
-              </span>
-            </button>
+            <ConnectionStatus />
+            <NotificationBell />
 
             <div className="flex items-center space-x-3">
               <div className="text-right">
