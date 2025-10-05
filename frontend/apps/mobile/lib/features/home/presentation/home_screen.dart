@@ -73,19 +73,19 @@ class _HomeScreenState extends State<HomeScreen> {
         unselectedItemColor: AppColors.textSecondary,
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(LucideIcons.home),
+            icon: Icon(LucideIcons.house),
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(LucideIcons.plusCircle),
+            icon: Icon(LucideIcons.plus),
             label: 'Report',
           ),
           BottomNavigationBarItem(
-            icon: Icon(LucideIcons.messageCircle),
+            icon: Icon(LucideIcons.messageSquare),
             label: 'Social',
           ),
           BottomNavigationBarItem(
-            icon: Icon(LucideIcons.fileText),
+            icon: Icon(LucideIcons.file),
             label: 'My Reports',
           ),
           BottomNavigationBarItem(
@@ -226,7 +226,7 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Expanded(
                 child: _buildActionCard(
-                  icon: LucideIcons.plusCircle,
+                  icon: LucideIcons.plus,
                   title: 'Report Hazard',
                   subtitle: 'Submit a new report',
                   color: AppColors.primary,
